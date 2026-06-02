@@ -959,14 +959,14 @@ function resetToLanding() {
   updateTopBar();
   showLanding();
 }
-function updateTopBar() {
+function updateTopBar(showSave = false) {
   const nameEl = document.getElementById('topbar-name');
   const saveEl = document.getElementById('topbar-save');
   const pinCard = document.getElementById('pin-save-card');
   if (currentPin && currentFirstName) {
     nameEl.textContent = '👤 ' + currentFirstName + ' ' + currentLastName;
     nameEl.style.display = 'inline-block';
-    saveEl.style.display = 'inline-block';
+    saveEl.style.display = showSave ? 'inline-block' : 'none'; // only show in edit mode
     if (pinCard) pinCard.style.display = 'none';
   } else {
     nameEl.style.display = 'none';
@@ -976,7 +976,9 @@ function updateTopBar() {
 }
 async function quickSave() {
   if (!currentPin) return;
+  const prevEditPin = bookData.editPin; // preserve editPin before overwriting
   bookData = collectData();
+  bookData.editPin = prevEditPin || '';
   const ok = await saveToFirebase(currentPin, bookData);
   showToast(ok ? '✅ บันทึกแล้ว' : '❌ บันทึกไม่สำเร็จ');
 }
@@ -1176,7 +1178,7 @@ async function saveDraft() {
   currentFirstName = firstName;
   currentLastName = lastName;
   currentPinOnly = pin;
-  updateTopBar();
+  updateTopBar(true);
   statusEl.textContent = '⏳ กำลังบันทึก...';
   statusEl.style.color = 'var(--text-light)';
   const data = collectData();
@@ -1308,7 +1310,7 @@ function generateBook() {
   if (_fn && _ln && /^\d{6}$/.test(_pin)) {
     const userKey = makeUserKey(_fn, _ln, _pin);
     currentPin = userKey; currentFirstName = _fn; currentLastName = _ln; currentPinOnly = _pin;
-    updateTopBar();
+    updateTopBar(true);
     saveToFirebase(userKey, bookData);
   } else if (currentPin) {
     saveToFirebase(currentPin, bookData);
@@ -1753,13 +1755,4 @@ function editBook() {
   s('willLocation',e.willLocation); s('insurance',e.insurance); s('accountInfo',e.accountInfo);
   const aw = e.awarenessChecks || {};
   Object.entries(aw).forEach(([k,v]) => setCheck('aw-'+k,v));
-  s('informed',e.informed);
-
-  document.getElementById('viewerApp').style.display = 'none';
-  document.getElementById('formApp').style.display = 'block';
-  goStep(1);
-}
-</script>
-</body>
-</html>
-            
+  s('informed',e.i
