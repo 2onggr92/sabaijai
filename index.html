@@ -1044,7 +1044,7 @@ function verifyIdentity() {
   return true;
 }
 
-function resetOrSetupEditPin() {
+async function resetOrSetupEditPin() {
   if (!bookData.personal?.idNumber) {
     alert('⚠️ ไม่พบเลขบัตรประชาชนในข้อมูล\nกรุณาแก้ไขแบบฟอร์มและใส่เลขบัตรประชาชนก่อน');
     return;
@@ -1056,14 +1056,15 @@ function resetOrSetupEditPin() {
   if (newPin.trim() !== conf?.trim()) { alert('❌ รหัสไม่ตรงกัน'); return; }
   const pin = newPin.trim();
   bookData.editPin = pin;
-  fetch(`${FIREBASE_URL}/${encodeURIComponent(currentPin)}/data/editPin.json`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(pin)
-  }).then(() => {
+  // Save full record (safest — guarantees editPin lands inside data{} in Firebase)
+  const ok = await saveToFirebase(currentPin, bookData);
+  if (ok) {
     alert('✅ ตั้งรหัสแก้ไขสำเร็จ!');
     proceedToEdit();
-  }).catch(() => alert('❌ เกิดข้อผิดพลาด กรุณาลองใหม่'));
+  } else {
+    bookData.editPin = '';
+    alert('❌ เกิดข้อผิดพลาด กรุณาลองใหม่');
+  }
 }
 function getQRUrl() {
   if (currentFirstName && currentLastName) {
@@ -1761,3 +1762,4 @@ function editBook() {
 </script>
 </body>
 </html>
+            
