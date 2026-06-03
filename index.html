@@ -1755,4 +1755,12 @@ function editBook() {
   s('willLocation',e.willLocation); s('insurance',e.insurance); s('accountInfo',e.accountInfo);
   const aw = e.awarenessChecks || {};
   Object.entries(aw).forEach(([k,v]) => setCheck('aw-'+k,v));
-  s('informed',e.i
+  s('informed',e.informed);
+
+  document.getElementById('viewerApp').style.display = 'none';
+  document.getElementById('formApp').style.display = 'block';
+  goStep(1);
+}
+</script>
+</body>
+</html>
