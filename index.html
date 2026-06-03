@@ -959,14 +959,15 @@ function resetToLanding() {
   updateTopBar();
   showLanding();
 }
-function updateTopBar(showSave = false) {
+function updateTopBar() {
   const nameEl = document.getElementById('topbar-name');
   const saveEl = document.getElementById('topbar-save');
   const pinCard = document.getElementById('pin-save-card');
+  const inFormMode = document.getElementById('formApp')?.style.display !== 'none';
   if (currentPin && currentFirstName) {
     nameEl.textContent = '👤 ' + currentFirstName + ' ' + currentLastName;
     nameEl.style.display = 'inline-block';
-    saveEl.style.display = showSave ? 'inline-block' : 'none'; // only show in edit mode
+    saveEl.style.display = inFormMode ? 'inline-block' : 'none';
     if (pinCard) pinCard.style.display = 'none';
   } else {
     nameEl.style.display = 'none';
@@ -1178,7 +1179,7 @@ async function saveDraft() {
   currentFirstName = firstName;
   currentLastName = lastName;
   currentPinOnly = pin;
-  updateTopBar(true);
+  updateTopBar();
   statusEl.textContent = '⏳ กำลังบันทึก...';
   statusEl.style.color = 'var(--text-light)';
   const data = collectData();
@@ -1303,14 +1304,16 @@ function collectData() {
 
 // GENERATE
 function generateBook() {
+  const prevEditPin = bookData.editPin; // preserve editPin before overwrite
   bookData = collectData();
+  bookData.editPin = prevEditPin || '';
   const _fn = (document.getElementById('save-firstname')?.value || '').trim() || currentFirstName;
   const _ln = (document.getElementById('save-lastname')?.value || '').trim() || currentLastName;
   const _pin = (document.getElementById('save-pin')?.value || '').trim() || currentPinOnly;
   if (_fn && _ln && /^\d{6}$/.test(_pin)) {
     const userKey = makeUserKey(_fn, _ln, _pin);
     currentPin = userKey; currentFirstName = _fn; currentLastName = _ln; currentPinOnly = _pin;
-    updateTopBar(true);
+    updateTopBar();
     saveToFirebase(userKey, bookData);
   } else if (currentPin) {
     saveToFirebase(currentPin, bookData);
@@ -1752,13 +1755,11 @@ function editBook() {
   s('funeralBudget',e.funeralBudget); s('funeralManager',e.funeralManager); s('funeralWishes',e.funeralWishes);
   setRadio('hasWill', e.hasWill);
   if (e.hasWill === 'yes') toggleWill(true);
-  s('willLocation',e.willLocation); s('insurance',e.insurance); s('accountInfo',e.accountInfo);
-  const aw = e.awarenessChecks || {};
-  Object.entries(aw).forEach(([k,v]) => setCheck('aw-'+k,v));
   s('informed',e.informed);
 
   document.getElementById('viewerApp').style.display = 'none';
   document.getElementById('formApp').style.display = 'block';
+  updateTopBar(); // show save button now that formApp is visible
   goStep(1);
 }
 </script>
