@@ -374,6 +374,13 @@ textarea { resize: vertical; min-height: 80px; }
       </div>
 
       <div class="card">
+        <div class="card-title">🛡️ ข้อมูลประกัน <span style="font-weight:400;font-size:12px;color:var(--text-light);">(ถ้ามี)</span></div>
+        <p style="font-size:13px;color:var(--text-light);margin-bottom:14px;">เพื่อให้ทีมฉุกเฉินส่งตัวไปโรงพยาบาลได้ถูกต้องตามสิทธิประกันของคุณ</p>
+        <div id="insurance-policies-container"></div>
+        <button type="button" class="btn btn-secondary" style="margin-top:4px;font-size:13px;padding:8px 16px;" onclick="addInsurancePolicy()">+ เพิ่มประกัน</button>
+      </div>
+
+      <div class="card">
         <div class="card-title">👨‍⚕️ แพทย์ประจำตัว <span style="font-weight:400;font-size:12px;color:var(--text-light);">(ถ้ามี)</span></div>
         <div class="field">
           <label class="field-label">ชื่อแพทย์</label>
@@ -948,9 +955,49 @@ function showViewer() {
   renderViewer(bookData);
   setTimeout(generateQR, 400);
 }
+let _insPolicyCount = 0;
+function addInsurancePolicy(data = {}) {
+  const idx = _insPolicyCount++;
+  const types = ['ประกันอุบัติเหตุ','ประกันสุขภาพ','ประกันชีวิต','อื่นๆ'];
+  const typeOpts = types.map(t => `<option value="${t}" ${data.type===t?'selected':''}>${t}</option>`).join('');
+  const html = `<div class="insurance-policy-item" id="ins-${idx}" style="border:1.5px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;background:var(--cream);position:relative;">
+    <button type="button" onclick="removeInsurancePolicy('ins-${idx}')" style="position:absolute;top:8px;right:10px;background:none;border:none;font-size:16px;cursor:pointer;color:var(--text-light);" title="ลบ">✕</button>
+    <div class="row-2" style="margin-bottom:10px;">
+      <div class="field" style="margin-bottom:0;">
+        <label class="field-label">ประเภทประกัน</label>
+        <select class="ins-type">${typeOpts}</select>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label class="field-label">บริษัทประกัน</label>
+        <input type="text" class="ins-company" value="${data.company||''}" placeholder="เช่น AIA, กรุงเทพประกันชีวิต">
+      </div>
+    </div>
+    <div class="row-2" style="margin-bottom:10px;">
+      <div class="field" style="margin-bottom:0;">
+        <label class="field-label">เลขกรมธรรม์</label>
+        <input type="text" class="ins-policy" value="${data.policyNumber||''}" placeholder="หมายเลขกรมธรรม์">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label class="field-label">เบอร์โทรฉุกเฉิน</label>
+        <input type="tel" class="ins-phone" value="${data.phone||''}" placeholder="เบอร์ติดต่อบริษัทประกัน">
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:0;">
+      <label class="field-label">โรงพยาบาลคู่สัญญา / ในเครือ</label>
+      <input type="text" class="ins-hospital" value="${data.hospital||''}" placeholder="เช่น รพ.กรุงเทพ, รพ.สมิติเวช, ทุกโรงพยาบาลในเครือ...">
+    </div>
+  </div>`;
+  document.getElementById('insurance-policies-container').insertAdjacentHTML('beforeend', html);
+}
+function removeInsurancePolicy(id) {
+  document.getElementById(id)?.remove();
+}
+
 function startNew() {
   document.getElementById('landingApp').style.display = 'none';
   document.getElementById('formApp').style.display = 'block';
+  document.getElementById('insurance-policies-container').innerHTML = '';
+  _insPolicyCount = 0;
   goStep(1);
 }
 function resetToLanding() {
@@ -1198,7 +1245,7 @@ async function saveDraft() {
 // FORM NAV
 function goStep(n) {
   if (n > currentStep && !validateStep(currentStep)) return;
-  if (currentPin && n !== currentStep) { bookData = collectData(); saveToFirebase(currentPin, bookData); showToast('💾 บันทึกอัตโนมัติ'); }
+  if (currentPin && n !== currentStep) { const _ep = bookData.editPin; bookData = collectData(); bookData.editPin = _ep || ''; saveToFirebase(currentPin, bookData); showToast('💾 บันทึกอัตโนมัติ'); }
   document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('step-' + n).classList.add('active');
   document.getElementById('alert-box').style.display = 'none';
@@ -1210,7 +1257,7 @@ function goStep(n) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 function goStepDirect(n) {
-  if (currentPin && n !== currentStep) { bookData = collectData(); saveToFirebase(currentPin, bookData); showToast('💾 บันทึกอัตโนมัติ'); }
+  if (currentPin && n !== currentStep) { const _ep = bookData.editPin; bookData = collectData(); bookData.editPin = _ep || ''; saveToFirebase(currentPin, bookData); showToast('💾 บันทึกอัตโนมัติ'); }
   document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('step-' + n).classList.add('active');
   document.getElementById('alert-box').style.display = 'none';
@@ -1259,6 +1306,13 @@ function collectData() {
       regularHospital: g('regularHospital'), allergies: g('allergies'), conditions: g('conditions'),
       proxyName: g('proxyName'), proxyRelation: g('proxyRelation'), proxyPhone: g('proxyPhone'),
       proxy2Name: g('proxy2Name'), proxy2Relation: g('proxy2Relation'), proxy2Phone: g('proxy2Phone'),
+      insurancePolicies: Array.from(document.querySelectorAll('#insurance-policies-container .insurance-policy-item')).map(el => ({
+        type: el.querySelector('.ins-type')?.value || '',
+        company: el.querySelector('.ins-company')?.value || '',
+        policyNumber: el.querySelector('.ins-policy')?.value || '',
+        phone: el.querySelector('.ins-phone')?.value || '',
+        hospital: el.querySelector('.ins-hospital')?.value || '',
+      })).filter(p => p.company || p.policyNumber || p.hospital || p.phone),
       doctorName: g('doctorName'), doctorHospital: g('doctorHospital'), doctorPhone: g('doctorPhone'),
     },
     lifeView: {
@@ -1366,6 +1420,18 @@ function renderViewer(d) {
     pb += '<div class="v-section-title">👤 ผู้ตัดสินใจแทน (สำรอง)</div>';
     pb += vr('ชื่อ', p.proxy2Name); pb += vr('ความสัมพันธ์', p.proxy2Relation);
     pb += vr('โทร', p.proxy2Phone ? `<a href="tel:${p.proxy2Phone}" style="color:var(--sage);font-weight:700;">${p.proxy2Phone}</a>` : '');
+  }
+  if (p.insurancePolicies && p.insurancePolicies.length) {
+    pb += '<div class="v-section-title">🛡️ ข้อมูลประกัน</div>';
+    p.insurancePolicies.forEach(ins => {
+      pb += `<div style="border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px;background:var(--cream);">`;
+      if (ins.type) pb += vr('ประเภท', `<span class="tag">${ins.type}</span>`);
+      pb += vr('บริษัท', ins.company);
+      pb += vr('กรมธรรม์', ins.policyNumber);
+      pb += vr('รพ.คู่สัญญา', ins.hospital);
+      pb += vr('โทรฉุกเฉิน', ins.phone ? `<a href="tel:${ins.phone}" style="color:var(--sage);font-weight:700;">${ins.phone}</a>` : '');
+      pb += `</div>`;
+    });
   }
   if (p.doctorName) {
     pb += '<div class="v-section-title">👨‍⚕️ แพทย์ประจำตัว</div>';
@@ -1717,6 +1783,11 @@ function editBook() {
   s('allergies',p.allergies); s('conditions',p.conditions);
   s('proxyName',p.proxyName); s('proxyRelation',p.proxyRelation); s('proxyPhone',p.proxyPhone);
   s('proxy2Name',p.proxy2Name); s('proxy2Relation',p.proxy2Relation); s('proxy2Phone',p.proxy2Phone);
+  const insContainer = document.getElementById('insurance-policies-container');
+  if (insContainer) { insContainer.innerHTML = ''; _insPolicyCount = 0; }
+  if (p.insurancePolicies && p.insurancePolicies.length) {
+    p.insurancePolicies.forEach(ins => addInsurancePolicy(ins));
+  }
   s('doctorName',p.doctorName); s('doctorHospital',p.doctorHospital); s('doctorPhone',p.doctorPhone);
 
   s('personality',lv.personality); s('proudOf',lv.proudOf); s('bucketList',lv.bucketList);
@@ -1755,6 +1826,9 @@ function editBook() {
   s('funeralBudget',e.funeralBudget); s('funeralManager',e.funeralManager); s('funeralWishes',e.funeralWishes);
   setRadio('hasWill', e.hasWill);
   if (e.hasWill === 'yes') toggleWill(true);
+  s('willLocation',e.willLocation); s('insurance',e.insurance); s('accountInfo',e.accountInfo);
+  const aw = e.awarenessChecks || {};
+  Object.entries(aw).forEach(([k,v]) => setCheck('aw-'+k,v));
   s('informed',e.informed);
 
   document.getElementById('viewerApp').style.display = 'none';
